@@ -99,4 +99,41 @@ class GithubUserProviderTest extends TestCase
         $this->assertEquals($expectedUser, $user);
         $this->assertEquals('App\Entity\User', get_class($user));
     }
+
+    /**
+     * @throws GuzzleException
+     */
+    public function testLoadUserByUsernameThrowingException()
+    {
+        // il n'est pas nécessaire de désactiver le constructeur : de simples mocks font l'affaire
+        $client = $this->createMock('GuzzleHttp\Client');
+        $serializer = $this->createMock('JMS\Serializer\SerializerInterface');
+        $response = $this->createMock('Psr\Http\Message\ResponseInterface');
+        $response2 = $this->createMock('Psr\Http\Message\StreamInterface');
+
+        // on peut partir du principe qu'il faut définir le retour de toutes les méthodes rencontrées dans le code à tester
+        $client
+            ->method('get')
+            ->willReturn($response);
+
+        $response
+            ->method('getBody')
+            ->willReturn($response2);
+
+        $response2
+            ->method('getContents')
+            ->willReturn('foo');
+
+        $serializer
+            ->method('deserialize')
+            ->willReturn(null);
+
+        $this->expectException('logicException');
+
+        // la levée de l'exception faisant sortir de la méthode testée, ce qui semble ne pas être évalué par le test
+        $github = new GithubUserProvider($client, $serializer);
+        $user = $github->loadUserByUsername('locullus');
+
+        $this->assertEquals('App\Entity\User', get_class($user));
+    }
 }
